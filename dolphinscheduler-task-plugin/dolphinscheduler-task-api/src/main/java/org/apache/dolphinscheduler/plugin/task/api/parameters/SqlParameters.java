@@ -161,10 +161,17 @@ public class SqlParameters extends AbstractParameters {
         }
         for (Property info : outProperty) {
             List<String> columnValues = sqlResultFormat.get(info.getProp());
+            if (columnValues == null) {
+                // the configured OUT parameter name does not match any result column, fail fast
+                // instead of propagating a null / "null" value downstream
+                throw new TaskException("Invalid SQL OUT parameter '" + info.getProp() + "': no matching column"
+                        + " in the query result(available columns: " + sqlResultFormat.keySet()
+                        + "), please make the OUT parameter name consistent with the result column name");
+            }
             if (info.getType() == DataType.LIST) {
                 // LIST OUT parameter always keeps the JSON array format, even if the result only has one row
                 info.setValue(JSONUtils.toJsonString(columnValues));
-            } else if (columnValues != null) {
+            } else {
                 if (columnValues.size() > 1) {
                     // fail fast instead of silently picking a non-deterministic row: without ORDER BY
                     // the row order is not guaranteed, so any picked row may be a plausible but

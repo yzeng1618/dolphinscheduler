@@ -237,6 +237,28 @@ public class SqlParametersTest {
         Assertions.assertTrue(exception.getMessage().contains("0"));
     }
 
+    @Test
+    public void testUnmatchedOutParameterNameFailsFast() {
+        List<Property> listProperties = new ArrayList<>();
+        listProperties.add(outProperty("list_user", DataType.LIST));
+        List<Property> varcharProperties = new ArrayList<>();
+        varcharProperties.add(outProperty("varchar_user", DataType.VARCHAR));
+
+        String result = "[{\"user\":\"user2\"}]";
+
+        // an OUT parameter whose name matches no result column fails fast and reports the
+        // available columns instead of propagating a null / "null" value downstream
+        TaskException listException = Assertions.assertThrows(TaskException.class,
+                () -> outParamValue(listProperties, 0, result));
+        Assertions.assertTrue(listException.getMessage().contains("list_user"));
+        Assertions.assertTrue(listException.getMessage().contains("user"));
+
+        TaskException varcharException = Assertions.assertThrows(TaskException.class,
+                () -> outParamValue(varcharProperties, 0, result));
+        Assertions.assertTrue(varcharException.getMessage().contains("varchar_user"));
+        Assertions.assertTrue(varcharException.getMessage().contains("user"));
+    }
+
     private Property outProperty(String prop, DataType dataType) {
         Property property = new Property();
         property.setProp(prop);
